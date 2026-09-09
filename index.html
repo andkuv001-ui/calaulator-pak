@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Калькулятор пакетов EVA</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --tg-bg: var(--tg-theme-bg-color, #f0f4f8);
+            --tg-text: var(--tg-theme-text-color, #1a202c);
+            --tg-hint: var(--tg-theme-hint-color, #718096);
+            --tg-btn: var(--tg-theme-button-color, #3182ce);
+            --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
+        }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; }
+        body { background: var(--tg-bg); min-height: 100vh; padding: 10px; }
+        .calc { background: #fff; max-width: 480px; width: 100%; margin: 0 auto; padding: 16px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); }
+        h1 { font-size: 20px; font-weight: 700; color: var(--tg-text); margin-bottom: 4px; }
+        .sub { font-size: 12px; color: var(--tg-hint); border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px; }
+        .warning-box { background: #fffbeb; border: 1px solid #f59e0b; border-radius: 10px; padding: 10px 12px; font-size: 12px; color: #92400e; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 8px; }
+        .warning-box.warning-blue { background: #ebf8ff; border-color: #3182ce; color: #2b6cb0; }
+        .block-title { font-size: 14px; font-weight: 600; color: #2d3748; margin: 16px 0 8px 0; display: flex; align-items: center; gap: 6px; }
+        .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .type-btn { display: flex; align-items: center; gap: 8px; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; background: #fff; font-size: 14px; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: 0.15s; }
+        .type-btn:active { transform: scale(0.97); }
+        .type-btn.active { border-color: #3182ce; background: #ebf8ff; }
+        .type-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #cbd5e0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .type-btn.active .type-dot { border-color: #3182ce; }
+        .type-dot-inner { width: 10px; height: 10px; border-radius: 50%; background: #3182ce; display: none; }
+        .type-btn.active .type-dot-inner { display: block; }
+        .orient-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        .orient-btn { flex: 1; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px; background: #fff; font-size: 13px; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: 0.15s; }
+        .orient-btn:active { transform: scale(0.97); }
+        .orient-btn.active { border-color: #3182ce; background: #ebf8ff; color: #2b6cb0; font-weight: 600; }
+        .size-select { padding: 12px; border: 1px solid #cbd5e0; border-radius: 10px; font-size: 16px; background: #f7fafc; width: 100%; appearance: auto; }
+        .size-select:focus { border-color: #3182ce; outline: none; background: #fff; }
+        .qty-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .qty-row input { flex: 1; min-width: 80px; padding: 12px; border: 1px solid #cbd5e0; border-radius: 10px; font-size: 16px; background: #f7fafc; }
+        .qty-row input:focus { border-color: #3182ce; outline: none; background: #fff; }
+        .error { color: #e53e3e; font-size: 12px; min-height: 18px; margin-top: 4px; }
+        .results { background: #f7fafc; border-radius: 14px; padding: 16px; margin-top: 8px; border: 1px solid #e2e8f0; }
+        .res-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; font-size: 14px; align-items: center; }
+        .res-row:last-child { border-bottom: none; }
+        .res-row .lbl { color: #4a5568; }
+        .res-row .val { font-weight: 600; color: #2b6cb0; }
+        .res-total { display: grid; grid-template-columns: 1fr auto; gap: 8px; font-size: 16px; font-weight: 700; padding-top: 10px; margin-top: 6px; border-top: 2px solid #cbd5e0; align-items: center; }
+        .res-total .val { color: #2b6cb0; }
+        .btn-send { width: 100%; padding: 14px; background: var(--tg-btn); color: var(--tg-btn-text); border: none; border-radius: 10px; font-size: 15px; font-weight: 600; margin-top: 14px; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: 0.15s; }
+        .btn-send:active { transform: scale(0.98); opacity: 0.85; }
+        .btn-copy { width: 100%; padding: 14px; background: #718096; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; margin-top: 8px; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: 0.15s; }
+        .btn-copy:active { transform: scale(0.98); opacity: 0.85; }
+        @media (max-width: 380px) { .calc { padding: 12px; } .type-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="calc">
+    <h1>📦 Калькулятор пакетов EVA</h1>
+    <div class="sub">Расчет стоимости пакетов-слайдеров</div>
+
+    <div class="warning-box">
+        <span>🚚</span>
+        <span><strong>Доставка не включена в стоимость.</strong> Рассчитывается отдельно в зависимости от региона.</span>
+    </div>
+    <div class="warning-box warning-blue">
+        <span>💰</span>
+        <span><strong>При заказе от 30 000 ₽</strong> скидки устанавливаются в индивидуальном порядке.</span>
+    </div>
+
+    <div class="block-title">🛍️ Тип пакета</div>
+    <div class="type-grid" id="typeGroup"></div>
+
+    <div class="block-title">📐 Размер</div>
+    <div id="sizeSelectWrap"></div>
+
+    <div class="block-title">🔢 Количество</div>
+    <div class="qty-row">
+        <input type="number" id="qtyInput" min="100" max="99999" value="100">
+        <span style="font-size:14px;color:#4a5568;">шт.</span>
+    </div>
+    <div class="error" id="errorMsg"></div>
+
+    <div class="block-title">💰 Расчет стоимости</div>
+    <div class="results">
+        <div class="res-row"><span class="lbl">Цена за 1 шт.</span><span class="val" id="unitPrice">—</span></div>
+        <div class="res-row"><span class="lbl">Количество</span><span class="val" id="qtyDisplay">—</span></div>
+        <div class="res-total"><span class="lbl">Итого</span><span class="val" id="totalPrice">—</span></div>
+    </div>
+
+    <button id="sendBtn" class="btn-send" onclick="sendOrder()">📋 Отправить заявку менеджеру</button>
+    <button id="copyBtn" class="btn-copy" onclick="copyResult()">📄 Скопировать расчёт в буфер</button>
+</div>
+
+<script>
+var BAGS = {
+    "slider_eva_70": {
+        "name": "Пакеты-слайдеры EVA матовые 70 мкм",
+        "vertical": {
+            "10×15": 2.10, "12×17": 2.55, "15×20": 2.70, "17×25": 3.45,
+            "20×20": 3.30, "20×25": 3.45, "20×30": 4.05, "25×25": 4.35,
+            "25×30": 4.65, "25×35": 4.95, "30×30": 5.85, "30×35": 6.15,
+            "30×40": 6.60, "32×36": 6.60, "35×40": 8.25, "35×45": 9.00,
+            "40×45": 10.50, "40×50": 10.80, "40×60": 13.35, "45×50": 12.45,
+            "45×55": 12.90, "50×60": 15.75, "50×70": 17.55, "60×70": 20.25
+        },
+        "horizontal": {
+            "20×15": 3.00, "40×30": 7.20
+        }
+    },
+    "slider_eva_60": {
+        "name": "Пакеты-слайдеры EVA матовые 60 мкм",
+        "vertical": {
+            "10×15": 2.11, "15×15": 2.48, "15×20": 2.69, "20×20": 3.23,
+            "20×25": 3.55, "20×30": 3.85, "25×25": 4.19, "25×30": 4.54,
+            "25×35": 4.98, "30×30": 5.48, "30×35": 5.87, "30×40": 6.37,
+            "35×35": 6.78, "35×40": 7.26, "35×45": 7.87, "40×40": 8.46,
+            "40×45": 9.17, "40×50": 9.76, "40×60": 10.95, "45×60": 12.45,
+            "45×65": 13.14, "50×60": 13.95, "50×70": 15.54, "70×70": 21.51
+        },
+        "horizontal": {
+            "20×15": 4.46, "25×17": 4.54, "25×20": 4.60, "30×20": 4.87
+        }
+    }
+};
+
+var TYPES = [
+    { id: "slider_eva_70", n: "EVA матовые 70 мкм" },
+    { id: "slider_eva_60", n: "EVA матовые 60 мкм" }
+];
+
+var selType = "slider_eva_70";
+var selOrientation = "vertical";
+var selSize = null;
+
+var tgApp = window.Telegram && window.Telegram.WebApp;
+if (tgApp) {
+    tgApp.ready();
+    tgApp.expand();
+}
+
+function fmt(p) { return p.toFixed(2).replace(".", ",") + " ₽"; }
+function fmtQty(q) { return q.toLocaleString("ru-RU") + " шт."; }
+
+function pickType(type) {
+    selType = type;
+    selOrientation = "vertical";
+    selSize = null;
+    renderTypes();
+    renderSizeSelect();
+    calc();
+}
+
+function pickOrientation(orient) {
+    selOrientation = orient;
+    selSize = null;
+    renderSizeSelect();
+    calc();
+}
+
+function pickSize(size) {
+    selSize = size;
+    calc();
+}
+
+function renderTypes() {
+    var h = "";
+    for (var i = 0; i < TYPES.length; i++) {
+        var t = TYPES[i];
+        var a = t.id === selType ? " active" : "";
+        h += '<div class="type-btn' + a + '" onclick="pickType(\'' + t.id + '\')">'
+           + '<div class="type-dot"><div class="type-dot-inner"></div></div>' + t.n + '</div>';
+    }
+    document.getElementById("typeGroup").innerHTML = h;
+}
+
+function renderSizeSelect() {
+    var d = BAGS[selType];
+    if (!d) return;
+
+    var sizes = d[selOrientation];
+    var keys = Object.keys(sizes);
+    if (selSize === null || !sizes[selSize]) selSize = keys[0];
+
+    var h = '<div class="orient-row">';
+    h += '<button class="orient-btn' + (selOrientation === "vertical" ? " active" : "") + '" onclick="pickOrientation(\'vertical\')">Вертикальные</button>';
+    h += '<button class="orient-btn' + (selOrientation === "horizontal" ? " active" : "") + '" onclick="pickOrientation(\'horizontal\')">Горизонтальные</button>';
+    h += '</div>';
+
+    h += '<select class="size-select" onchange="pickSize(this.value)">';
+    for (var i = 0; i < keys.length; i++) {
+        var sz = keys[i];
+        var price = sizes[sz];
+        var sel = sz === selSize ? " selected" : "";
+        h += '<option value="' + sz + '"' + sel + '>' + sz + " — " + fmt(price) + '/шт.</option>';
+    }
+    h += '</select>';
+    document.getElementById("sizeSelectWrap").innerHTML = h;
+}
+
+function calc() {
+    var d = BAGS[selType];
+    var q = parseInt(document.getElementById("qtyInput").value, 10);
+    var errEl = document.getElementById("errorMsg");
+    errEl.textContent = "";
+
+    if (!d || !selSize || !d[selOrientation][selSize]) {
+        clearRes();
+        return;
+    }
+    if (isNaN(q) || q < 100) {
+        errEl.textContent = "Минимальный заказ — 100 шт.";
+        clearRes();
+        return;
+    }
+    if (q > 99999) {
+        errEl.textContent = "Максимум 99 999 шт.";
+        clearRes();
+        return;
+    }
+
+    var unitPrice = d[selOrientation][selSize];
+    var total = unitPrice * q;
+
+    document.getElementById("unitPrice").textContent = fmt(unitPrice);
+    document.getElementById("qtyDisplay").textContent = fmtQty(q);
+    document.getElementById("totalPrice").textContent = fmt(total);
+
+    if (total >= 30000) {
+        document.getElementById("sendBtn").textContent = "💬 Узнать индивидуальную скидку";
+    } else {
+        document.getElementById("sendBtn").textContent = "📋 Отправить заявку менеджеру";
+    }
+}
+
+function clearRes() {
+    document.getElementById("unitPrice").textContent = "—";
+    document.getElementById("qtyDisplay").textContent = "—";
+    document.getElementById("totalPrice").textContent = "—";
+}
+
+function buildResultText() {
+    var q = parseInt(document.getElementById("qtyInput").value, 10);
+    if (isNaN(q) || q < 100) return null;
+
+    var typeName = BAGS[selType].name;
+    var orientName = selOrientation === "vertical" ? "вертикальный" : "горизонтальный";
+    var total = document.getElementById("totalPrice").textContent;
+    if (total === "—") return null;
+
+    return "📦 Заявка на пакеты EVA:\n"
+        + "Тип: " + typeName + "\n"
+        + "Ориентация: " + orientName + "\n"
+        + "Размер: " + selSize + "\n"
+        + "Количество: " + fmtQty(q) + "\n"
+        + "Итого: " + total;
+}
+
+function sendOrder() {
+    var text = buildResultText();
+    if (!text) return;
+    if (tgApp && tgApp.sendData) {
+        tgApp.sendData(text);
+    } else {
+        copyToClipboard(text);
+        var btn = document.getElementById("sendBtn");
+        btn.textContent = "✓ Скопировано!";
+        setTimeout(function() { btn.textContent = "📋 Отправить заявку менеджеру"; }, 2500);
+    }
+}
+
+function copyResult() {
+    var text = buildResultText();
+    if (!text) return;
+    copyToClipboard(text);
+    var btn = document.getElementById("copyBtn");
+    btn.textContent = "✓ Скопировано в буфер!";
+    setTimeout(function() { btn.textContent = "📄 Скопировать расчёт в буфер"; }, 2500);
+}
+
+function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text);
+    } else {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+    }
+}
+
+document.getElementById("qtyInput").addEventListener("input", calc);
+renderTypes();
+renderSizeSelect();
+calc();
+</script>
+</body>
+</html>
