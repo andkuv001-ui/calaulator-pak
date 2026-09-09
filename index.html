@@ -252,7 +252,8 @@ function buildResultText() {
         + "Ориентация: " + orientName + "\n"
         + "Размер: " + selSize + "\n"
         + "Количество: " + fmtQty(q) + "\n"
-        + "Итого: " + total;
+        + "Итого: " + total + "\n\n"
+        + "Отправьте расчёт менеджеру: @andkuv1";
 }
 
 function sendOrder() {
@@ -263,8 +264,8 @@ function sendOrder() {
     } else {
         copyToClipboard(text);
         var btn = document.getElementById("sendBtn");
-        btn.textContent = "✓ Скопировано!";
-        setTimeout(function() { btn.textContent = "📋 Отправить заявку менеджеру"; }, 2500);
+        btn.textContent = "✓ Скопировано! Отправьте расчёт в личку @andkuv1";
+        setTimeout(function() { btn.textContent = "📋 Отправить заявку менеджеру"; }, 4000);
     }
 }
 
