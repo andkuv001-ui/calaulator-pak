@@ -8,6 +8,7 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEB_APP_URL = "https://andkuv001-ui.github.io/calaulator-pak/"
+CHANNEL_CHAT_ID = os.getenv("CHANNEL_CHAT_ID")
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -117,7 +118,17 @@ async def post_calculator(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await post_in_chat(context, chat.id)
         return
 
-    await update.message.reply_text("Эта команда работает в канале или группе.")
+    if chat.type == "private":
+        if CHANNEL_CHAT_ID:
+            try:
+                await post_in_chat(context, int(CHANNEL_CHAT_ID), is_channel=True)
+                await update.message.reply_text("✅ Калькулятор опубликован в канале!")
+            except Exception as e:
+                logger.error("Failed to post to channel: %s", e)
+                await update.message.reply_text(f"❌ Не удалось опубликовать: {e}")
+        else:
+            await update.message.reply_text("CHANNEL_CHAT_ID не задан. Укажите ID канала в .env файле.")
+        return
 
 
 async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -170,11 +181,11 @@ def main() -> None:
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start_private, filters=filters.ChatType.PRIVATE))
-    app.add_handler(CommandHandler("post", post_calculator, filters=filters.ChatType.GROUPS | filters.ChatType.CHANNEL))
+    app.add_handler(CommandHandler("post", post_calculator))
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_web_app_data))
 
     logger.info("Bot started. Web App URL: %s", WEB_APP_URL)
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    app.run_polling(drop_pending_updates=True, allowed_updates=Update.ALL_TYPES)
 
 
 if __name__ == "__main__":
